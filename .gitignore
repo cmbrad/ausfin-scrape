@@ -3,3 +3,4 @@
 *.egg-info
 *.idea
 env
+config.json

@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Optional
 
 from selenium import webdriver
 
@@ -160,9 +160,9 @@ class IngBankSource(Source):
         for button in buttons:
             self._set_button_value(button)
 
-        return {key.text: key.element for key in keypad_buttons}
+        return {key.text: key.element for key in buttons}
 
-    def _button_by_data(self, data: str, buttons: List[KeypadButton]):
+    def _button_by_data(self, data: str, buttons: List[KeypadButton]) -> Optional[KeypadButton]:
         for button in buttons:
             if button.data == data:
                 return button

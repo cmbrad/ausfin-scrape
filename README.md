@@ -22,16 +22,17 @@ institutions to get the current account balance. Available scrapers are:
 2. Install this package with `pip install -e .`
 
 ## Usage
+### Balance
 Run as follows:
 
 ```bash
-ausfin scrape [source] -u [username] -p [password]
+ausfin balance [source] -u [username] -p [password]
 ```
 
 eg.
 
 ```bash
-ausfin scrape acorns -u username -p password
+ausfin balance acorns -u username -p password
 ```
 
 Source must be one of:
@@ -43,3 +44,30 @@ Source must be one of:
 * commbank-shares
 * ratesetter
 * acorns
+
+### Net Worth
+
+Save a config file in the format, for example as `config.json`:
+
+```json
+{
+  "accounts": [
+    {
+      "source": "28degrees",
+      "username": "ausername",
+      "password": "apassword"
+    },
+    {
+      "source": "anothersource",
+      "username": "adifferentusername",
+      "password": "adifferentpassword"
+    }
+  ]
+}
+```
+
+Then:
+
+```bash
+ausfin net-worth -c config.json
+```
