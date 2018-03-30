@@ -4,7 +4,8 @@ import click
 from tabulate import tabulate
 
 from ausfin.sources import TwentyEightDegreesSource, UbankSource, SuncorpBankSource, IngBankSource, \
-    CommbankBankSource, CommbankSharesSource, RatesetterSource, AcornsSource
+    CommbankBankSource, CommbankSharesSource, RatesetterSource, AcornsSource, driver, SuncorpSuperSource, \
+    BtcMarketsSource, UniSuperSource
 
 
 @click.group()
@@ -13,14 +14,17 @@ def cli():
 
 
 sources = {
-    '28degrees': TwentyEightDegreesSource,
-    'acorns': AcornsSource,
+    '28degrees-credit': TwentyEightDegreesSource,
+    'acorns-investment': AcornsSource,
+    'btcmarkets-investment': BtcMarketsSource,
     'commbank-bank': CommbankBankSource,
-    'commbank-shares': CommbankSharesSource,
+    'commbank-investment': CommbankSharesSource,
     'ing-bank': IngBankSource,
-    'ratesetter': RatesetterSource,
-    'suncorp-bank': SuncorpBankSource,
+    'ratesetter-investment': RatesetterSource,
+    'suncorpbank-bank': SuncorpBankSource,
+    'suncorpbank-super': SuncorpSuperSource,
     'ubank-bank': UbankSource,
+    'unisuper-super': UniSuperSource,
 }
 
 
@@ -29,8 +33,9 @@ sources = {
 @click.option('--username', '-u', required=True)
 @click.option('--password', '-p', required=True)
 def balance(source, username, password):
-    source = sources.get(source)()
-    print(source.fetch_balance(username, password))
+    with driver(implicit_wait_secs=10) as d:
+        source = sources.get(source)(driver=d)
+        print(source.fetch_balance(username, password))
 
 
 @cli.command(name='net-worth')
@@ -43,8 +48,11 @@ def net_worth(config_filename):
     balance_data = []
     for account in accounts:
         print(f'Loading data from {account["source"]}')
-        source = sources.get(account['source'])()
-        balance = source.fetch_balance(account['username'], account['password'])
+        # For now don't use shared drivers as can cause sources which share sites
+        # to fail as they're already logged in previously. Need to fix by adding login detection
+        with driver(implicit_wait_secs=10) as d:
+            source = sources.get(account['source'])(driver=d)
+            balance = source.fetch_balance(account['username'], account['password'])
 
         balance_data.append([account['source'], account['type'], balance])
 
@@ -53,7 +61,7 @@ def net_worth(config_filename):
     net_worth = sum([balance[2] for balance in balance_data])
 
     print('='*40)
-    print(f'Net worth is {net_worth}')
+    print(f'Net worth is ${net_worth:.2f}')
 
 
 def main():

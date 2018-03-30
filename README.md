@@ -9,8 +9,10 @@ institutions to get the current account balance. Available scrapers are:
 * Commbank (Shares)
 * ING Direct
 * Ratesetter
-* Suncorp Bank
+* Suncorp Bank (Bank)
+* Suncorp Bank (Shares)
 * Ubank
+* Unisuper
 
 ## Prerequisites
 * Python 3.6
@@ -36,14 +38,16 @@ ausfin balance acorns -u username -p password
 ```
 
 Source must be one of:
-* 28degrees 
-* ubank-bank
-* suncorp-bank
-* ing-bank
+* 28degrees-credit
+* acorns-investment
 * commbank-bank
-* commbank-shares
-* ratesetter
-* acorns
+* commbank-investment
+* ing-bank
+* ratesetter-investment
+* suncorpbank-bank
+* suncorpbank-super
+* ubank-bank
+* unisuper-super
 
 ### Net Worth
 
@@ -53,7 +57,7 @@ Save a config file in the format, for example as `config.json`:
 {
   "accounts": [
     {
-      "source": "28degrees",
+      "source": "28degrees-credit",
       "username": "ausername",
       "password": "apassword"
     },

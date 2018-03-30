@@ -1,47 +1,41 @@
 import logging
+
+from contextlib import contextmanager
 from typing import List, Optional
 
 from selenium import webdriver
 
 
-from selenium.webdriver.remote.remote_connection import LOGGER as selenium_logger
-selenium_logger.setLevel(logging.CRITICAL)
+@contextmanager
+def driver(implicit_wait_secs):
+    options = webdriver.ChromeOptions()
+    options.add_argument('--headless')
+    options.add_argument('--disable-gpu')
+    options.add_argument('--log-level=3')
+
+    d = webdriver.Chrome(chrome_options=options)
+    d.implicitly_wait(time_to_wait=implicit_wait_secs)
+
+    try:
+        yield d
+    finally:
+        d.quit()
 
 
 class Source:
-    def __init__(self, implicit_wait_secs=10, driver=None):
-        self.implicit_wait_secs = implicit_wait_secs
-        self.driver = driver or self._driver()
-
+    def __init__(self, driver: webdriver.Chrome):
+        self.driver = driver
         self.logger = logging.getLogger(__name__)
 
-    def fetch_balance(self, username, password):
-        self.logger.info('Fetching balance')
-        balance = self._fetch_balance(username, password)
-
-        self.logger.debug('Quitting driver')
-        self.driver.quit()
-
-        return balance
-
-    def _fetch_balance(self, username, password, base_url=None):
+    def fetch_balance(self, username, password, base_url=None):
         pass
-
-    def _driver(self):
-        options = webdriver.ChromeOptions()
-        options.add_argument('--headless')
-        options.add_argument('--disable-gpu')
-        options.add_argument('--log-level=3')
-        driver = webdriver.Chrome(chrome_options=options)
-        driver.implicitly_wait(time_to_wait=self.implicit_wait_secs)
-
-        return driver
 
     def _balance_to_num(self, balance):
         return float(balance[1:].replace(',', '').replace(' ', ''))
 
+
 class TwentyEightDegreesSource(Source):
-    def _fetch_balance(self, username, password, base_url='https://28degrees-online.latitudefinancial.com.au/'):
+    def fetch_balance(self, username, password, base_url='https://28degrees-online.latitudefinancial.com.au/'):
         self.driver.get(base_url)
 
         username_field = self.driver.find_element_by_id('AccessToken_Username')
@@ -59,7 +53,7 @@ class TwentyEightDegreesSource(Source):
 
 
 class UbankSource(Source):
-    def _fetch_balance(self, username, password, base_url='https://www.ubank.com.au/NAGAuthn/ubank.secgate.action'):
+    def fetch_balance(self, username, password, base_url='https://www.ubank.com.au/NAGAuthn/ubank.secgate.action'):
         self.driver.get(base_url)
 
         username_field = self.driver.find_element_by_id('username')
@@ -77,7 +71,7 @@ class UbankSource(Source):
 
 
 class SuncorpBankSource(Source):
-    def _fetch_balance(self, username, password, base_url='https://internetbanking.suncorpbank.com.au/'):
+    def fetch_balance(self, username, password, base_url='https://internetbanking.suncorpbank.com.au/'):
         self.driver.get(base_url)
 
         username_field = self.driver.find_element_by_id('UserId')
@@ -90,6 +84,30 @@ class SuncorpBankSource(Source):
 
         # Doesn't have a summary balance field so calculate it ourselves
         balance_table = self.driver.find_element_by_id('BalanceTable').find_element_by_tag_name('tbody')
+        balance_rows = balance_table.find_elements_by_tag_name('tr')
+
+        # table goes account name, account number, current balance, available funds, balance alerts
+        balances = [self._balance_to_num(balance_row.find_elements_by_tag_name('td')[2].text)
+                    for balance_row in balance_rows]
+
+        return sum(balances)
+
+
+class SuncorpSuperSource(Source):
+    def fetch_balance(self, username, password, base_url='https://internetbanking.suncorpbank.com.au/'):
+        self.driver.get(base_url)
+
+        username_field = self.driver.find_element_by_id('UserId')
+        password_field = self.driver.find_element_by_id('password')
+        login_btn = self.driver.find_element_by_id('login-button')
+
+        username_field.send_keys(username)
+        password_field.send_keys(password)
+        login_btn.click()
+
+        # Doesn't have a summary balance field so calculate it ourselves
+        # There are two balance tables, and the super table is the 2nd one
+        balance_table = self.driver.find_elements_by_id('BalanceTable')[1].find_element_by_tag_name('tbody')
         balance_rows = balance_table.find_elements_by_tag_name('tr')
 
         # table goes account name, account number, current balance, available funds, balance alerts
@@ -124,7 +142,7 @@ class IngBankSource(Source):
         '9': 'iVBORw0KGgoAAAANSUhEUgAAALQAAABuCAYAAACOaDl7AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAP7SURBVHhe7dy9ThRRHIbxwxZwEfReiPdAYgUhITYGbGxNuADtLezsTKy1tTAUFEBiRUJrAiFSQCI0jPMuM0rW/+zszp5xd988J/kFlj2z1ePJmY811aPYSKsXW4O9i83BQfnzulQAC+y6anVP7VYZP4zLzbRevnk0cgCwHMp21fAw5uHKXMV8tT0obndWivvnqSiABaZG1aqaraI+Pt1Na+l8a7Bbx0zIWDZqto5aLadqHzKsPToAWHRqt1qlD7RC3+kFqzOWldqtgr5Nw19K0URgWdQdEzQsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEPT/8upJUbx78ZdeR/MwE4Luk6L9/L4ofp4X4dDf9T5xZ0PQffnwuih+3VTltgzN+/Q2/hxMhaD7oDi7DKKeGUHn9uZZVWfHoeOjz8VECDq3s5OqzJHx4+xhBdYJoX7qdTR0fPS5mAhB56RYo/H9Wzy/KX5W6c4IOqevH6siR0bTVYz9p9WEkaErH9F8tCLonKJtRNPqXIuOYdvRGUHnFI221bZpVY/mohVB5xSNtqD1fjSiuWhF0DlF4/BLPLfWdCKpv0fzMRZB5xTth3UXcNytbYLOiqBzatoPa5WOotZVDp00RoOgOyHonJouw2lopVbY2jMr/KYbK/Ug6E4IOremVXraQdCdEHQftBLPOrhb2AlB90Vbi7bHRxV+05N50WeiFUH3SSeCClbh6u6f6CRQsWu/rTnRdWj9Qxj9LEyEoOct2nNz67szgp636Ik7RR7NRSuCnidtSaKhr29F89GKoOcpOiFk/zwTgp6n6NvgOoGM5mIiBD0vTdequaEyE4Lug6LUULTaDz9+jkOvoxNBjbYvA6AVQfeh6T+WGTe0d66vTaMzgs5NK3CXwZWNLAg6t2mD1srMvjkbgu6Dtg7aP497lkPvac64h/8xNYLum1ZfPa/xGCtybwgaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVggaVgh6WvvB37AwCBpW/gR9vjW40y/3wSRgGajdKujrdLE5ONCL252VcDKw6NTuMOiyZW059vTiaptVGstHzardYdBly+l0N62VZR/XUat2wsaiU6Nq9VHMJ2o5aVxupvUy6qPqDWC5lAuyGh7GXI9iI62Wb7wsTxIPy0k3/xwELJabYatls2r3oeKUfgN5mGB2BUP+xQAAAABJRU5ErkJggg==',
     }
 
-    def _fetch_balance(self, username, password, base_url='https://www.ing.com.au/securebanking/'):
+    def fetch_balance(self, username, password, base_url='https://www.ing.com.au/securebanking/'):
         self.driver.get(base_url)
 
         client_number_field = self.driver.find_element_by_id('cifField')
@@ -184,7 +202,7 @@ class IngBankSource(Source):
 
 
 class CommbankBankSource(Source):
-    def _fetch_balance(self, username, password, base_url='https://www.my.commbank.com.au/netbank/Logon/Logon.aspx'):
+    def fetch_balance(self, username, password, base_url='https://www.my.commbank.com.au/netbank/Logon/Logon.aspx'):
         self.driver.get(base_url)
 
         username_field = self.driver.find_element_by_id('txtMyClientNumber_field')
@@ -225,7 +243,7 @@ class CommbankBankSource(Source):
 
 
 class CommbankSharesSource(Source):
-    def _fetch_balance(self, username, password, base_url='https://www.my.commbank.com.au/netbank/Logon/Logon.aspx'):
+    def fetch_balance(self, username, password, base_url='https://www.my.commbank.com.au/netbank/Logon/Logon.aspx'):
         self.driver.get(base_url)
 
         username_field = self.driver.find_element_by_id('txtMyClientNumber_field')
@@ -265,7 +283,7 @@ class CommbankSharesSource(Source):
 
 
 class RatesetterSource(Source):
-    def _fetch_balance(self, username, password, base_url='https://members.ratesetter.com.au/login.aspx'):
+    def fetch_balance(self, username, password, base_url='https://members.ratesetter.com.au/login.aspx'):
         self.driver.get(base_url)
 
         username_field = self.driver.find_element_by_id('ctl00_cphContentArea_cphForm_txtEmail')
@@ -281,7 +299,7 @@ class RatesetterSource(Source):
 
 
 class AcornsSource(Source):
-    def _fetch_balance(self, username, password, base_url='https://app.acornsau.com.au/auth/login'):
+    def fetch_balance(self, username, password, base_url='https://app.acornsau.com.au/auth/login'):
         self.driver.get(base_url)
 
         username_field = self.driver.find_element_by_class_name('spec-login-email-input')
@@ -293,5 +311,27 @@ class AcornsSource(Source):
         login_btn.click()
 
         balance_field = self.driver.find_element_by_tag_name('output')
+
+        return self._balance_to_num(balance_field.text)
+
+
+class BtcMarketsSource(Source):
+    def fetch_balance(self, username, password, base_url=None):
+        return 0
+
+
+class UniSuperSource(Source):
+    def fetch_balance(self, username, password, base_url='https://memberonline.unisuper.com.au/'):
+        self.driver.get(base_url)
+
+        username_field = self.driver.find_element_by_id('username')
+        password_field = self.driver.find_element_by_id('password')
+        login_btn = self.driver.find_element_by_xpath('//*[@id="loginForm"]/p/input')
+
+        username_field.send_keys(username)
+        password_field.send_keys(password)
+        login_btn.click()
+
+        balance_field = self.driver.find_element_by_xpath('//*[@id="main"]/div[2]/div/div/div[3]')
 
         return self._balance_to_num(balance_field.text)
