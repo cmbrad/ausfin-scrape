@@ -5,6 +5,7 @@ institutions to get the current account balance. Available scrapers are:
 
 * 28 Degrees
 * Acorns
+* BTCMarkets
 * Commbank (Bank)
 * Commbank (Shares)
 * ING Direct
@@ -40,6 +41,7 @@ ausfin balance acorns -u username -p password
 Source must be one of:
 * 28degrees-credit
 * acorns-investment
+* btcmarkets-investment
 * commbank-bank
 * commbank-investment
 * ing-bank

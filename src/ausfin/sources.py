@@ -1,8 +1,14 @@
+import base64
+import hashlib
+import hmac
 import logging
 
 from contextlib import contextmanager
 from typing import List, Optional
 
+import time
+
+import requests
 from selenium import webdriver
 
 
@@ -316,8 +322,51 @@ class AcornsSource(Source):
 
 
 class BtcMarketsSource(Source):
-    def fetch_balance(self, username, password, base_url=None):
-        return 0
+    def fetch_balance(self, username, password, base_url='https://api.btcmarkets.net'):
+        balances = self.get_api(username, password, base_url, '/account/balance')
+
+        total_balance = 0.0
+        for coin in balances:
+            # conversion factor
+            balance = coin['balance'] / 100000000
+            currency = coin['currency']
+
+            # Can't convert AUD to AUD, so just take it as is
+            if currency == 'AUD':
+                total_balance += balance
+                continue
+
+            if balance > 0:
+                # get balance in AUD
+                tick = self.get_api(username, password, base_url, f'/market/{currency}/AUD/tick')
+                last_price = tick['lastPrice']
+
+                aud_balance = balance * last_price
+                total_balance += aud_balance
+
+        return round(total_balance, 2)
+
+    def get_api(self, username, password, base_url, path):
+        key = username
+        secret = base64.b64decode(password)
+
+        # Needs to be a string for the headers
+        now_ms = str(int(time.time() * 1000))
+        sign_str = f'{path}\n{now_ms}\n'.encode('utf8')
+        signature = base64.b64encode(hmac.new(secret, sign_str, digestmod=hashlib.sha512).digest())
+
+        headers = {
+            'accept': 'application/json',
+            'Content-Type': 'application/json',
+            'User-Agent': 'btc markets python client',
+            'accept-charset': 'utf-8',
+            'apikey': key,
+            'signature': signature,
+            'timestamp': now_ms,
+        }
+
+        response = requests.get(f'{base_url}/{path}', headers=headers)
+        return response.json()
 
 
 class UniSuperSource(Source):
