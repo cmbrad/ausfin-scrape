@@ -1,3 +1,4 @@
+import datetime
 import json
 
 import click
@@ -40,7 +41,8 @@ def balance(source, username, password):
 
 @cli.command(name='net-worth')
 @click.option('--config-filename', '-c', default='config.json')
-def net_worth(config_filename):
+@click.option('--out-filename', '-o')
+def net_worth(config_filename, out_filename):
     with open(config_filename, 'r') as f:
         config = json.load(f)
     accounts = config['accounts']
@@ -54,14 +56,28 @@ def net_worth(config_filename):
             source = sources.get(account['source'])(driver=d)
             balance = source.fetch_balance(account['username'], account['password'])
 
-        balance_data.append([account['source'], account['type'], balance])
+        balance_data.append([account['source'], balance])
 
-    print(tabulate(balance_data, headers=['Source', 'Type', 'Balance'], floatfmt='.2f'))
+    print(tabulate(balance_data, headers=['Source', 'Balance'], floatfmt='.2f'))
 
-    net_worth = sum([balance[2] for balance in balance_data])
+    net_worth = sum([balance[1] for balance in balance_data])
 
     print('='*40)
     print(f'Net worth is ${net_worth:.2f}')
+
+    if out_filename is not None:
+        out_data = {
+            'extract_time': datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat(),
+            'balances': []
+        }
+        for row in balance_data:
+            out_data['balances'].append({
+                'source': row[0],
+                'balance': row[1]
+            })
+
+        with open(out_filename, 'w', newline='') as f:
+            json.dump(out_data, f)
 
 
 def main():

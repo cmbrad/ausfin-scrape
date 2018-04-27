@@ -3,4 +3,6 @@
 *.egg-info
 *.idea
 env
-config.json
+.pytest_cache/
+__pycache__
+*.json
