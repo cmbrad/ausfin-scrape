@@ -8,7 +8,7 @@ def read(filename):
 
 setup(
     name='ausfin',
-    version='0.1',
+    version='0.1.1',
     description='Account balance scraping for Australian financial institutions',
     long_description=read('README.md'),
     long_description_content_type='text/markdown',
@@ -19,7 +19,9 @@ setup(
     package_dir={'': 'src'},
     install_requires=[
         'click>=6.7,<6.8',
-        'selenium>=3.11,<3.12'
+        'selenium>=3.11,<3.12',
+        'tabulate>=0.8,<0.9',
+        'requests>=2.18,<2.19'
     ],
     extras_require={
         'test': [

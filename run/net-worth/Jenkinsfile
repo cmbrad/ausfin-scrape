@@ -3,6 +3,10 @@ pipeline {
         label "centos7-generic"
     }
 
+    parameters {
+        string(defaultValue: '0.1.1', name: 'ausfinVersion', description: 'Version of Ausfin')
+    }
+
     stages {
         stage('run') {
             environment {
@@ -10,10 +14,19 @@ pipeline {
             }
             steps {
                 sh """
+                curl https://chromedriver.storage.googleapis.com/2.38/chromedriver_linux64.zip -O
+                unzip chromedriver_linux64.zip
+
                 python3.6 -m venv env
                 . env/bin/activate
                 pip install --upgrade pip setuptools
-                pip install ausfin
+                pip install --upgrade ausfin==${params.ausfinVersion}
+
+                ls
+
+                export PATH=${WORKSPACE}:\$PATH
+
+                echo \$PATH
 
                 ausfin net-worth -c ${CONFIG}
                 """
