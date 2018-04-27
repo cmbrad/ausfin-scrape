@@ -19,7 +19,7 @@ pipeline {
             steps {
                 sh """
                 rm -rf dist
-                
+
                 python3.6 -m venv env
                 . env/bin/activate
                 pip install --upgrade pip setuptools wheel
