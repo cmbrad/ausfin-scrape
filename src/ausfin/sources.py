@@ -443,7 +443,7 @@ class RatesetterSource(Source):
 
 
 class AcornsSource(Source):
-    def fetch_balance(self, username, password, base_url='https://app.acornsau.com.au/auth/login'):
+    def fetch_balance(self, username, password, base_url='https://app.raizinvest.com.au/auth/login'):
         self.driver.get(base_url)
 
         username_field = self.driver.find_element_by_class_name('spec-login-email-input')

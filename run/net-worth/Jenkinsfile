@@ -3,8 +3,12 @@ pipeline {
         label "centos7-generic"
     }
 
+    options {
+        timestamps()
+    }
+
     parameters {
-        string(defaultValue: '0.1.1', name: 'ausfinVersion', description: 'Version of Ausfin')
+        string(defaultValue: '0.2.0', name: 'ausfinVersion', description: 'Version of Ausfin')
     }
 
     stages {
@@ -25,10 +29,11 @@ pipeline {
                 ls
 
                 export PATH=${WORKSPACE}:\$PATH
+                export PYTHONUNBUFFERED=True
 
                 echo \$PATH
 
-                ausfin net-worth -c ${CONFIG}
+                ausfin net-worth -c ${CONFIG} -o balance-data.json
                 """
             }
         }
