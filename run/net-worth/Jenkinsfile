@@ -1,6 +1,10 @@
 pipeline {
     agent {
-        label "centos7-generic"
+        label('centos7-generic')
+    }
+
+    triggers {
+        cron('H 13 * * *')
     }
 
     options {
@@ -25,6 +29,7 @@ pipeline {
                 . env/bin/activate
                 pip install --upgrade pip setuptools
                 pip install --upgrade ausfin==${params.ausfinVersion}
+                pip install --upgrade awscli
 
                 ls
 
@@ -34,6 +39,7 @@ pipeline {
                 echo \$PATH
 
                 ausfin net-worth -c ${CONFIG} -o balance-data.json
+                aws s3 cp balance-data.json s3://cy-private/ausfin/\$(date -I).json
                 """
             }
         }
