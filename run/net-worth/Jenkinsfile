@@ -1,10 +1,12 @@
+String cronTrigger = BRANCH_NAME == "master" ? 'H 23 * * *' : ''
+
 pipeline {
     agent {
         label('centos7-generic')
     }
 
     triggers {
-        cron('H 13 * * *')
+        cron(cronTrigger)
     }
 
     options {
