@@ -1,5 +1,7 @@
 import datetime
 import json
+import logging
+import sys
 
 import click
 from tabulate import tabulate
@@ -11,7 +13,7 @@ from ausfin.sources import TwentyEightDegreesSource, UbankSource, SuncorpBankSou
 
 @click.group()
 def cli():
-    pass
+    setup_logging()
 
 
 sources = {
@@ -78,6 +80,20 @@ def net_worth(config_filename, out_filename):
 
         with open(out_filename, 'w', newline='') as f:
             json.dump(out_data, f)
+
+
+def setup_logging():
+    # create logger with 'spam_application'
+    logger = logging.getLogger('ausfin')
+    logger.setLevel(logging.DEBUG)
+    # create console handler with a higher log level
+    ch = logging.StreamHandler(sys.stderr)
+    ch.setLevel(logging.ERROR)
+    # create formatter and add it to the handlers
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    ch.setFormatter(formatter)
+    # add the handlers to the logger
+    logger.addHandler(ch)
 
 
 def main():

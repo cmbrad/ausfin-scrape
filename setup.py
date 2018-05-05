@@ -8,7 +8,7 @@ def read(filename):
 
 setup(
     name='ausfin',
-    version='0.2.0',
+    version='0.2.2',
     description='Account balance scraping for Australian financial institutions',
     long_description=read('README.md'),
     long_description_content_type='text/markdown',

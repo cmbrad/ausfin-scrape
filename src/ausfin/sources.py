@@ -446,6 +446,8 @@ class AcornsSource(Source):
     def fetch_balance(self, username, password, base_url='https://app.raizinvest.com.au/auth/login'):
         self.driver.get(base_url)
 
+        self.logger.debug(self.driver.page_source)
+
         username_field = self.driver.find_element_by_class_name('spec-login-email-input')
         password_field = self.driver.find_element_by_class_name('spec-login-password-input')
         login_btn = self.driver.find_element_by_class_name('spec-login-button')
@@ -456,6 +458,9 @@ class AcornsSource(Source):
         login_btn.click()
 
         balance_field = self.driver.find_element_by_tag_name('output')
+
+        self.logger.debug(self.driver.page_source)
+        self.logger.debug(balance_field.text)
 
         return self._balance_to_num(balance_field.text)
 
