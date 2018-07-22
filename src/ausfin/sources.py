@@ -519,7 +519,7 @@ class UniSuperSource(Source):
 
         username_field = self.driver.find_element_by_id('username')
         password_field = self.driver.find_element_by_id('password')
-        login_btn = self.driver.find_element_by_xpath('//*[@id="loginForm"]/p/input')
+        login_btn = self.driver.find_element_by_xpath('//*[@id="loginForm"]/div[2]/input')
 
         username_field.send_keys(username)
         password_field.send_keys(password)
